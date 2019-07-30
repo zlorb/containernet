@@ -59,6 +59,7 @@ import signal
 import select
 import docker
 import json
+import time
 from subprocess import Popen, PIPE, check_output
 from time import sleep
 
@@ -297,6 +298,15 @@ class Node( object ):
            and return without waiting for the command to complete.
            args: command and arguments, or string
            printPid: print command's PID? (False)"""
+        # be a bit more relaxed here and allow to wait 120s for the shell
+        cnt = 0
+        while (self.waiting and cnt < 5 * 120):
+            debug("Waiting for shell to unblock...")
+            time.sleep(.2)
+            cnt += 1
+        if cnt > 0:
+            warn("Shell unblocked after {:.2f}s"
+                 .format(float(cnt)/5))
         assert self.shell and not self.waiting
         printPid = kwargs.get( 'printPid', False )
         # Allow sendCmd( [ list ] )
@@ -731,6 +741,7 @@ class Docker ( Host ):
                      'memswap_limit': None,
                      'environment': {},
                      'volumes': [],  # use ["/home/user1/:/mnt/vol2:rw"]
+                     'tmpfs': [], # use ["/home/vol1/:size=3G,uid=1000"]
                      'network_mode': None,
                      'publish_all_ports': True,
                      'port_bindings': {},
@@ -750,6 +761,7 @@ class Docker ( Host ):
         )
 
         self.volumes = defaults['volumes']
+        self.tmpfs = defaults['tmpfs']
         self.environment = {} if defaults['environment'] is None else defaults['environment']
         # setting PS1 at "docker run" may break the python docker api (update_container hangs...)
         # self.environment.update({"PS1": chr(127)})  # CLI support
@@ -777,6 +789,7 @@ class Docker ( Host ):
             network_mode=self.network_mode,
             privileged=True,  # we need this to allow mininet network setup
             binds=self.volumes,
+            tmpfs=self.tmpfs,
             publish_all_ports=self.publish_all_ports,
             port_bindings=self.port_bindings,
             mem_limit=self.resources.get('mem_limit'),
