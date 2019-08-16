@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Set the following to your 'pfnet' folder
+pfnet=""
+if [ -z "$pfnet" ]
+then
+    pfnet=`pwd`
+    echo -e "\n\n*** 'pfenet' location is not configured inside this script \n*** -- using local folder as fallback.\n"
+fi
+
 echo Docker pruning
 docker image prune -f
 docker container prune -f
@@ -20,4 +28,4 @@ echo $ip $display_number
 echo Starting containernet
 # docker ... xterm  or  /bin/bash
 (sleep 10 && open http://127.0.0.1:8888/notebooks/test.ipynb) &
-docker run --name containernet -it --rm --privileged -p 8888:8888 --pid='host' -e DISPLAY=$ip$display_number -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix -v `pwd`:/mnt containernet jupyter.sh examples/test.ipynb
+docker run --name containernet -it --rm --privileged -p 8888:8888 --pid='host' -e DISPLAY=$ip$display_number -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix -v $pfnet:/mnt containernet jupyter.sh examples/test.ipynb
